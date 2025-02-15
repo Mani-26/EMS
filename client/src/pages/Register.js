@@ -3,6 +3,7 @@ import axios from "axios";
 import { useParams } from "react-router-dom";
 
 export default function Register() {
+  const [name, setName] = useState(""); // New State for Name
   const [email, setEmail] = useState("");
   const [availableSeats, setAvailableSeats] = useState(null);
   const { eventId } = useParams();
@@ -22,18 +23,28 @@ export default function Register() {
 
   // Handle registration
   const handleRegister = async () => {
-    if (!email) {
-      alert("Please enter your email.");
+    if (!name || !email) {
+      alert("Please enter your name and email.");
       return;
     }
 
     try {
-      await axios.post("http://localhost:5000/api/register", { email, eventId });
+      await axios.post("http://localhost:5000/api/register", { name, email, eventId });
       alert("✅ Registration successful! Check your email.");
       setAvailableSeats((prevSeats) => prevSeats - 1); // Reduce seat count
     } catch (error) {
       console.error("Registration error:", error);
-      alert("❌ Registration failed. Try again later.");
+
+      if (error.response && error.response.status === 400) {
+        const errorMessage = error.response.data.message;
+        if (errorMessage.includes("already registered")) {
+          alert("⚠️ You are already registered! Check your email for details.");
+        } else {
+          alert(`❌ Registration failed: ${errorMessage}`);
+        }
+      } else {
+        alert("❌ Registration failed. Try again later.");
+      }
     }
   };
 
@@ -45,6 +56,15 @@ export default function Register() {
       ) : (
         <p>Loading available seats...</p>
       )}
+      
+      <input
+        type="text"
+        placeholder="Your Name"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        className="input-field"
+      />
+      
       <input
         type="email"
         placeholder="Your Email"
@@ -52,6 +72,7 @@ export default function Register() {
         onChange={(e) => setEmail(e.target.value)}
         className="input-field"
       />
+      
       <button onClick={handleRegister} disabled={availableSeats === 0} className="register-button">
         {availableSeats === 0 ? "Sold Out" : "Register"}
       </button>
