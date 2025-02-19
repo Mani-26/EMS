@@ -12,7 +12,9 @@ export default function Register() {
   useEffect(() => {
     const fetchEventDetails = async () => {
       try {
-        const res = await axios.get(`http://localhost:5000/api/events/${eventId}`);
+        const res = await axios.get(
+          `http://localhost:5000/api/events/${eventId}`
+        );
         setAvailableSeats(res.data.seatLimit - res.data.registeredUsers);
       } catch (error) {
         console.error("Error fetching event details:", error);
@@ -29,22 +31,27 @@ export default function Register() {
     }
 
     try {
-      await axios.post("http://localhost:5000/api/register", { name, email, eventId });
-      alert("✅ Registration successful! Check your email.");
-      setAvailableSeats((prevSeats) => prevSeats - 1); // Reduce seat count
-    } catch (error) {
-      console.error("Registration error:", error);
-
-      if (error.response && error.response.status === 400) {
-        const errorMessage = error.response.data.message;
-        if (errorMessage.includes("already registered")) {
-          alert("⚠️ You are already registered! Check your email for details.");
-        } else {
-          alert(`❌ Registration failed: ${errorMessage}`);
-        }
-      } else {
-        alert("❌ Registration failed. Try again later.");
+      // Fetch latest remaining seats
+      const eventRes = await axios.get(
+        `http://localhost:5000/api/events/${eventId}`
+      );
+      if (eventRes.data.remainingSeats <= 0) {
+        alert("⚠️ Sorry, all seats are filled!");
+        return;
       }
+
+      const res = await axios.post("http://localhost:5000/api/register", {
+        name,
+        email,
+        eventId,
+      });
+      alert(res.data.message);
+      setAvailableSeats((prevSeats) => prevSeats - 1);
+    } catch (error) {
+      alert(
+        error.response?.data?.message ||
+          "❌ Registration failed. Try again later."
+      );
     }
   };
 
@@ -56,7 +63,7 @@ export default function Register() {
       ) : (
         <p>Loading available seats...</p>
       )}
-      
+
       <input
         type="text"
         placeholder="Your Name"
@@ -64,7 +71,7 @@ export default function Register() {
         onChange={(e) => setName(e.target.value)}
         className="input-field"
       />
-      
+
       <input
         type="email"
         placeholder="Your Email"
@@ -72,8 +79,12 @@ export default function Register() {
         onChange={(e) => setEmail(e.target.value)}
         className="input-field"
       />
-      
-      <button onClick={handleRegister} disabled={availableSeats === 0} className="register-button">
+
+      <button
+        onClick={handleRegister}
+        disabled={availableSeats === 0}
+        className="register-button"
+      >
         {availableSeats === 0 ? "Sold Out" : "Register"}
       </button>
     </div>
